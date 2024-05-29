@@ -5,17 +5,25 @@ import sys
 import time
 import speech_recognition as sr
 from openai import OpenAI
-# from elevenlabs import play
+from elevenlabs import play, stream
+from elevenlabs.client import ElevenLabs
 from test_tts import tts_run
+from .Sarah_brain import Sarah_thinking
 
 
 class Audio(QThread):
     def __init__(self, audio_text):
         super().__init__()
         self.audio_text = audio_text
+        self.client = ElevenLabs(api_key="ef41d7ce51e2bad6c1a58331420769f0")
 
     def run(self):
-        tts_run(self.audio_text, "[happy]")
+        audio = self.client.generate(
+            text=self.audio_text,
+            voice="Ryan - Calm Masculine Teenager",
+            model="eleven_multilingual_v2"
+        )
+        stream(audio)
 
 
 class ChatGPTThread(QThread):
@@ -40,6 +48,17 @@ class ChatGPTThread(QThread):
         return self.response
 
 
+class CozeThread(QThread):
+    def __init__(self, prompt):
+        super().__init__()
+        self.prompt = prompt
+        self.response = ""
+
+    def run(self):
+        self.response = Sarah_thinking(prompt=self.prompt)
+        return self.response
+
+
 class myThread(QThread):
     # Define a custom signal to emit the GIF filename
     gifFilename = pyqtSignal(str)
@@ -50,6 +69,7 @@ class myThread(QThread):
         self.recognizer = sr.Recognizer()
         self.chatgpt = OpenAI(api_key="sk-J3vEsFqZXfrV6UtUPCVTYYgfTzUdAr7lrqmhAxO3xDkGOLyL",
                               base_url="https://api.chatanywhere.tech/v1")
+        self.coze = CozeThread
         self.audio_thread = Audio
         self.dict = {
             "[happy]": "face/happy.gif",
@@ -62,6 +82,7 @@ class myThread(QThread):
         # self.goodbye_gif = QMovie('face/goodbye.gif')
 
     def run(self):
+        '''
         result = self.chatgpt_thread(
             prompt="Make a polite and short greeting", chatgpt=self.chatgpt).run()
         tmp = result.split()
@@ -69,6 +90,8 @@ class myThread(QThread):
         result2 = result.replace(tmp2, "")
         self.audio_thread(result2).run()
         print("Bot:", result2)
+        '''
+        check = False
         while True:
             try:
                 with sr.Microphone() as source2:
@@ -79,27 +102,30 @@ class myThread(QThread):
                     MyText = self.recognizer.recognize_google(audio2).lower()
                     print("User:", MyText)
 
-                    if "bye" not in MyText:
-                        result = self.chatgpt_thread(
-                            prompt=MyText, chatgpt=self.chatgpt).run()
-                        tmp = result.split()
-                        tmp2 = tmp[-1]
-                        result2 = result.replace(tmp2, "")
-                        self.gifFilename.emit(self.dict[tmp2])
-                        self.audio_thread(result2).run()
-                        print("Bot:", result2)
-                        # Emit signal for happy GIF
-                    else:
-                        result = self.chatgpt_thread(
-                            prompt="Make an awesome goodbye", chatgpt=self.chatgpt).run()
-                        tmp = result.split()
-                        tmp2 = tmp[-1]
-                        result2 = result.replace(tmp2, "")
-                        self.gifFilename.emit(self.dict[tmp2])
-                        self.audio_thread(result2).run()
-                        print("Bot:", result2)
-                        # Emit signal for goodbye GIF
-                        sys.exit()
+                    if check == True or "hey steve" in MyText or "hi steve" in MyText:
+                        if check == False:
+                            check = True
+                        if "bye" not in MyText:
+                            result = self.coze(
+                                prompt=MyText).run()
+                            tmp = result.split()
+                            tmp2 = tmp[-1]
+                            result2 = result.replace(tmp2, "")
+                            self.gifFilename.emit(self.dict[tmp2])
+                            self.audio_thread(result2).run()
+                            print("Bot:", result2)
+                            # Emit signal for happy GIF
+                        else:
+                            result = self.chatgpt_thread(
+                                prompt="Make an awesome goodbye", chatgpt=self.chatgpt).run()
+                            tmp = result.split()
+                            tmp2 = tmp[-1]
+                            result2 = result.replace(tmp2, "")
+                            self.gifFilename.emit(self.dict[tmp2])
+                            self.audio_thread(result2).run()
+                            print("Bot:", result2)
+                            # Emit signal for goodbye GIF
+                            sys.exit()
             except sr.RequestError as e:
                 print("Could not request results; {0}".format(e))
             except sr.UnknownValueError:
