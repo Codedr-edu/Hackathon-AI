@@ -8,7 +8,7 @@ from openai import OpenAI
 from elevenlabs import play, stream
 from elevenlabs.client import ElevenLabs
 from test_tts import tts_run
-from .Sarah_brain import Sarah_thinking
+from Sarah_brain import Sarah_thinking
 
 
 class Audio(QThread):
@@ -21,7 +21,8 @@ class Audio(QThread):
         audio = self.client.generate(
             text=self.audio_text,
             voice="Ryan - Calm Masculine Teenager",
-            model="eleven_multilingual_v2"
+            model="eleven_multilingual_v2",
+            stream=True
         )
         stream(audio)
 
@@ -75,7 +76,19 @@ class myThread(QThread):
             "[happy]": "face/happy.gif",
             "[sad]": "face/sad.gif",
             "[angry]": "face/angry.gif",
-            "[scared]": "face/scared.gif"
+            "[scared]": "face/scared.gif",
+            "[happy].": "face/happy.gif",
+            "[sad].": "face/sad.gif",
+            "[angry].": "face/angry.gif",
+            "[scared].": "face/scared.gif",
+            "[happy]!": "face/happy.gif",
+            "[sad]!": "face/sad.gif",
+            "[angry]!": "face/angry.gif",
+            "[scared]!": "face/scared.gif",
+            "[happy]?": "face/happy.gif",
+            "[sad]?": "face/sad.gif",
+            "[angry]?": "face/angry.gif",
+            "[scared]?": "face/scared.gif"
         }
         # self.happy_gif = QMovie('face/happy.gif')  # Pre-load the happy GIF
         # Pre-load the goodbye GIF (assuming you have one)
@@ -124,8 +137,7 @@ class myThread(QThread):
                             self.gifFilename.emit(self.dict[tmp2])
                             self.audio_thread(result2).run()
                             print("Bot:", result2)
-                            # Emit signal for goodbye GIF
-                            sys.exit()
+                            check = False
             except sr.RequestError as e:
                 print("Could not request results; {0}".format(e))
             except sr.UnknownValueError:
